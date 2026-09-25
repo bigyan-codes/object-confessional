@@ -1,3 +1,4 @@
+> Built for the QVAC hackathon. Point a photo at any object — it confesses its secrets, spoken aloud, fully on-device.
 # The Object Confessional
 
 Point a photo at any object — a mug, a chair, a plant — and it delivers a
