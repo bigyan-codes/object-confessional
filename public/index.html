@@ -22,9 +22,10 @@
     border: 1.5px dashed #8a6b3d; border-radius: 14px; padding: 28px;
     text-align: center; cursor: pointer; transition: .15s ease;
     background: rgba(255,235,200,.02);
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
   }
   .drop:hover, .drop.hot { border-color: #d9a35a; background: rgba(255,235,200,.06); }
-  .drop img { max-width: 100%; max-height: 260px; border-radius: 10px; display: block; margin: 0 auto; }
+  .drop img { max-width: 100%; max-height: 260px; border-radius: 10px; }
   .drop .hint { opacity: .6; font-size: 14px; }
   button {
     display: block; margin: 22px auto 0; padding: 12px 28px;
@@ -51,7 +52,6 @@
 
   <label class="drop" id="drop">
     <input type="file" id="file" accept="image/*" hidden />
-    <div id="preview" class="hint">Drop an image here, or click to choose one</div>
   </label>
 
   <button id="go" disabled>Confess</button>
@@ -64,21 +64,34 @@
 <script>
 const fileEl   = document.getElementById('file');
 const dropEl   = document.getElementById('drop');
-const preview  = document.getElementById('preview');
 const goBtn    = document.getElementById('go');
 const confEl   = document.getElementById('confession');
 const player   = document.getElementById('player');
 const statusEl = document.getElementById('status');
+
 let chosen = null;
+
+const imgEl = document.createElement('img');
+imgEl.style.display = 'none';
+imgEl.alt = 'Selected object';
+
+const hintEl = document.createElement('div');
+hintEl.className = 'hint';
+hintEl.textContent = 'Drop an image here, or click to choose one';
+
+dropEl.appendChild(imgEl);
+dropEl.appendChild(hintEl);
 
 function pick(f) {
   chosen = f;
-  const url = URL.createObjectURL(f);
-  preview.outerHTML = `<img id="preview" src="${url}" />`;
+  imgEl.src = URL.createObjectURL(f);
+  imgEl.style.display = 'block';
+  hintEl.style.display = 'none';
   goBtn.disabled = false;
   confEl.hidden = true;
   player.hidden = true;
   statusEl.textContent = '';
+  statusEl.classList.remove('err');
 }
 
 fileEl.onchange = e => e.target.files[0] && pick(e.target.files[0]);

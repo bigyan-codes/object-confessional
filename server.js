@@ -42,16 +42,24 @@ function writeWav(filePath, samples, sampleRate) {
 }
 
 let visionId, ttsId;
+
 const PROMPT =
-  'Look at this image carefully. First, in one short phrase, name the main object. ' +
-  'Then, as that object, write a dramatic first-person confession (3-5 sentences) ' +
-  'about what it has witnessed, resented, or secretly dreamed of. ' +
-  'Be specific, dramatic, and slightly petty. Output format exactly:\n' +
-  'OBJECT: <name>\n' +
-  'CONFESSION: <text>';
+  'You are looking at a photo of an everyday object. ' +
+  'Write a SHORT first-person confession as if THAT specific object is speaking.\n\n' +
+  'RULES:\n' +
+  '- Start with exactly: "OBJECT: <name>" on the first line.\n' +
+  '- Then write "CONFESSION: " on the next line.\n' +
+  '- The confession must be 2-3 sentences, max 60 words.\n' +
+  '- It must mention SPECIFIC things about being that object: its material, its shape, what humans do to it, where it sits.\n' +
+  '- Be petty, personal, and slightly bitter. NOT cosmic. NOT philosophical.\n' +
+  '- No empires, no civilizations, no universe, no fate.\n\n' +
+  'EXAMPLE (mug):\n' +
+  'OBJECT: mug\n' +
+  'CONFESSION: I am the mug. Every morning you grab me with cold hands and leave me half-full in the sink by noon. I have watched you pick the red mug twice this week. I am not jealous. I am just tired.\n\n' +
+  'Now do the same for the object in this image.';
 
 async function boot() {
-  console.log('→ Loading vision model...');
+  console.log('-> Loading vision model...');
   visionId = await loadModel({
     modelSrc: SMOLVLM2_500M_MULTIMODAL_Q8_0,
     modelType: 'llm',
@@ -61,14 +69,14 @@ async function boot() {
     },
   });
 
-  console.log('→ Loading TTS voice...');
+  console.log('-> Loading TTS voice...');
   ttsId = await loadModel({
     modelSrc: TTS_MULTILINGUAL_SUPERTONIC3_Q8_0.src,
     modelType: 'tts',
     modelConfig: { ttsEngine: 'supertonic', language: 'en' },
   });
 
-  console.log('✅ Models ready.');
+  console.log('Models ready.');
 }
 
 app.post('/api/confess', upload.single('image'), async (req, res) => {
@@ -82,6 +90,9 @@ app.post('/api/confess', upload.single('image'), async (req, res) => {
         { role: 'user', content: PROMPT, attachments: [{ path: imagePath }] },
       ],
       stream: true,
+      temp: 0.4,
+      top_p: 0.9,
+      predict: 120,
     });
     let raw = '';
     for await (const token of run.tokenStream) raw += token;
@@ -99,11 +110,8 @@ app.post('/api/confess', upload.single('image'), async (req, res) => {
 
     const samples = await audio.buffer;
     const sampleRate = (await audio.sampleRate) || 44100;
-
     if (!Array.isArray(samples) || samples.length === 0) {
-      throw new Error(
-        'TTS returned no samples. Raw: ' + JSON.stringify(audio).slice(0, 300)
-      );
+      throw new Error('TTS returned no samples.');
     }
 
     const wavName = `confession-${Date.now()}.wav`;
@@ -122,7 +130,7 @@ app.post('/api/confess', upload.single('image'), async (req, res) => {
 boot()
   .then(() => {
     app.listen(3000, () => {
-      console.log('\n🕯️   Open http://localhost:3000\n');
+      console.log('\nOpen http://localhost:3000\n');
     });
   })
   .catch((err) => {
